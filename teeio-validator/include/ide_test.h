@@ -204,7 +204,8 @@ typedef struct {
   bool enabled;
   IDE_TEST_TOPOLOGY_TYPE type;
   int topology_id;
-  int configuration_id;
+  uint32_t configuration_ids[MAX_CONFIGURATION_NUM];
+  uint32_t configuration_cnt;
   IDE_TEST_CASES test_cases;
 } IDE_TEST_SUITE;
 

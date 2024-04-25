@@ -1420,7 +1420,7 @@ bool GetUint32ArrayFromDataFile(
     uint8_t *SectionName,
     uint8_t *EntryName,
     uint32_t *DataArray,
-    uint32_t DataArrayLength)
+    uint32_t *DataArrayLength)
 {
   int count = 0;
   bool ret = false;
@@ -1429,7 +1429,7 @@ bool GetUint32ArrayFromDataFile(
   unsigned long result = 0;
   char *end_ptr = NULL;
 
-  if (Context == NULL || SectionName == NULL || EntryName == NULL || DataArray == NULL || DataArrayLength == 0)
+  if (Context == NULL || SectionName == NULL || EntryName == NULL || DataArray == NULL || DataArrayLength == NULL || *DataArrayLength == 0)
   {
     return false;
   }
@@ -1477,7 +1477,7 @@ bool GetUint32ArrayFromDataFile(
       break;
     }
 
-    if (count == DataArrayLength)
+    if (count == *DataArrayLength)
     {
       ret = false;
       break;
@@ -1490,6 +1490,8 @@ bool GetUint32ArrayFromDataFile(
   }
 
   free(buffer);
+
+  *DataArrayLength = count;
 
   return ret;
 }
@@ -1622,7 +1624,7 @@ bool ParseTestSuiteCaseEntry(void *context, uint8_t *section_name, uint8_t *entr
     return false;
   }
 
-  if (!GetUint32ArrayFromDataFile(context, section_name, entry_name, cases_id, array_size))
+  if (!GetUint32ArrayFromDataFile(context, section_name, entry_name, cases_id, &array_size))
   {
     return false;
   }
@@ -1648,6 +1650,7 @@ bool ParseTestSuiteSection(void *context, IDE_TEST_CONFIG *test_config, int inde
   IDE_TEST_SUITE test_suite = {0};
   uint32_t cases_id[MAX_CASE_ID] = {0};
   uint32_t cases_cnt = 0;
+  int i = 0;
 
   if (index <= 0)
   {
@@ -1703,24 +1706,32 @@ bool ParseTestSuiteSection(void *context, IDE_TEST_CONFIG *test_config, int inde
   test_suite.topology_id = data32;
 
   // configuration
+  // configuration=1,2,3
   sprintf(entry_name, "configuration");
-  if (!GetDecimalUint32FromDataFile(context, (uint8_t *)section_name, (uint8_t *)entry_name, &data32))
+  uint32_t cfg_ids[MAX_CONFIGURATION_NUM] = {0};
+  uint32_t ids_cnt = MAX_CONFIGURATION_NUM;
+
+  if(!GetUint32ArrayFromDataFile(context, (uint8_t *)section_name, (uint8_t *)entry_name, cfg_ids, &ids_cnt))
   {
     TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "[%s] configuration is missing.\n", section_name));
     return false;
   }
-  IDE_TEST_CONFIGURATION *config = get_configuration_by_id(test_config, data32);
-  if (config == NULL)
-  {
-    TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "[%s] configuratioin_%d is not valid.\n", section_name, data32));
-    return false;
+
+  for(i = 0; i < ids_cnt; i++) {
+    IDE_TEST_CONFIGURATION *config = get_configuration_by_id(test_config, cfg_ids[i]);
+    if (config == NULL)
+    {
+      TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "[%s] configuratioin_%d is not valid.\n", section_name, cfg_ids[i]));
+      return false;
+    }
+    if (config->type != test_suite.type)
+    {
+      TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "[%s] configuration_%d type doesnot match test_suite.type\n", section_name, cfg_ids[i]));
+      return false;
+    }
+    test_suite.configuration_ids[i] = cfg_ids[i];
   }
-  if (config->type != test_suite.type)
-  {
-    TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "[%s] configuration_%d type doesnot match test_suite.type\n", section_name, data32));
-    return false;
-  }
-  test_suite.configuration_id = data32;
+  test_suite.configuration_cnt = ids_cnt;
 
   // query
   cases_cnt = MAX_QUERY_CASE_ID;
@@ -1761,7 +1772,7 @@ bool ParseTestSuiteSection(void *context, IDE_TEST_CONFIG *test_config, int inde
     TEEIO_DEBUG((TEEIO_DEBUG_INFO, "[%s] KSetGo not found.\n", section_name));
     cases_cnt = 0;
   }
-  for (int i = 0; i < cases_cnt; i++)
+  for (i = 0; i < cases_cnt; i++)
   {
     test_suite.test_cases.cases[IDE_COMMON_TEST_CASE_KSETGO].cases_id[i] = cases_id[i];
   }
@@ -1805,7 +1816,10 @@ bool ParseTestSuiteSection(void *context, IDE_TEST_CONFIG *test_config, int inde
   ts->enabled = test_suite.enabled;
   ts->type = test_suite.type;
   ts->topology_id = test_suite.topology_id;
-  ts->configuration_id = test_suite.configuration_id;
+  ts->configuration_cnt = test_suite.configuration_cnt;
+  for(int i = 0; i < ts->configuration_cnt; i++) {
+    ts->configuration_ids[i] = test_suite.configuration_ids[i];
+  }
 
   IDE_TEST_CASES *tc = &ts->test_cases;
 
@@ -2513,7 +2527,7 @@ void dump_test_config(IDE_TEST_CONFIG *test_config)
     TEEIO_DEBUG((TEEIO_DEBUG_VERBOSE, "  enabled   = %d\n", suite->enabled));
     TEEIO_DEBUG((TEEIO_DEBUG_VERBOSE, "  type      = %s\n", IDE_TEST_TOPOLOGY_TYPE_NAMES[suite->type]));
     TEEIO_DEBUG((TEEIO_DEBUG_VERBOSE, "  top_id    = %d\n", suite->topology_id));
-    TEEIO_DEBUG((TEEIO_DEBUG_VERBOSE, "  configuration_id  = [%d]\n", suite->configuration_id));
+    TEEIO_DEBUG((TEEIO_DEBUG_VERBOSE, "  configuration_ids  = [%s]\n", print_array_to_buffer(buffer, MAX_LINE_LENGTH, suite->configuration_ids, suite->configuration_cnt)));
 
     IDE_TEST_CASES *cases = &suite->test_cases;
 
@@ -2559,7 +2573,7 @@ bool update_test_config_with_given_top_config_id(IDE_TEST_CONFIG *test_config, i
   for(int i = 0; i < test_config->test_suites.cnt; i++) {
     suite = test_config->test_suites.test_suites + i;
     suite->enabled = 0;
-    suite->configuration_id = 0;
+    suite->configuration_cnt = 0;
     suite->id = 0;
     for(int j = 0; j < IDE_COMMON_TEST_CASE_NUM; j++) {
       suite->test_cases.cases[j].cases_cnt = 0;
@@ -2570,7 +2584,8 @@ bool update_test_config_with_given_top_config_id(IDE_TEST_CONFIG *test_config, i
 
   // create TestSuite for full test case
   suite = &test_config->test_suites.test_suites[0];
-  suite->configuration_id = config_id;
+  suite->configuration_ids[0] = config_id;
+  suite->configuration_cnt = 1;
   suite->enabled = true;
   suite->id = 1;
   suite->topology_id = top_id;
