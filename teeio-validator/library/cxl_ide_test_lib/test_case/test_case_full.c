@@ -121,6 +121,8 @@ bool cxl_ide_test_full_ide_stream_teardown(void *test_context)
       TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "cxl_stop_ide_stream failed.\n"));
       return false;
     }
+  } else {
+    TEEIO_DEBUG ((TEEIO_DEBUG_INFO, "KSetStop is not supported.\n"));
   }
 
   // clear LinkEncEnable on the RootPort side
