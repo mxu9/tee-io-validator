@@ -90,6 +90,32 @@ bool revert_copy_by_dw(void* src, int src_size, void* dest, int dest_size)
     return true;
 }
 
+void revert_bytes_inside_dw(uint32_t* dw)
+{
+  uint8_t tmp;
+  for(int i = 0; i < 2; i++) {
+    tmp = *((uint8_t *)dw + i);
+    *((uint8_t *)dw + i) = *((uint8_t *)dw + 3 - i);
+    *((uint8_t *)dw + 3 - i) = tmp;
+  }
+}
+
+/**
+ * revert the bytes order inside of a dword.
+ * Here is an example:
+ *    aa bb cc dd 11 22 33 44 99 88 77 66
+ *    =>
+ *    dd cc bb aa 44 33 22 11 66 77 88 99
+ */
+bool revert_bytes_in_dw(uint32_t* dw, int size)
+{
+  for(int i = 0; i < size; i++) {
+    revert_bytes_inside_dw(dw + i);
+  }
+
+  return true;
+}
+
 /**
   Return if the decimal string is valid.
 

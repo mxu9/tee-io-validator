@@ -24,12 +24,12 @@
 #include "cxl_ide_lib.h"
 #include "cxl_ide_test_common.h"
 
-void cxl_dump_key_iv(cxl_ide_km_aes_256_gcm_key_buffer_t *key_buffer)
+void cxl_dump_key_iv(uint8_t* key, int key_size, uint8_t *iv, int iv_size)
 {
   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Key:\n"));
-  dump_hex_array((uint8_t *)key_buffer->key, sizeof(key_buffer->key));
+  dump_hex_array(key, key_size);
   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "IV:\n"));
-  dump_hex_array((uint8_t *)key_buffer->iv, sizeof(key_buffer->iv));
+  dump_hex_array(iv, iv_size);
 }
 
 // setup cxl ide stream
@@ -80,6 +80,16 @@ static void dump_cxl_ide_status(ide_common_test_port_context_t* upper_port, ide_
   cxl_dump_ide_status(lower_port->cxl_data.memcache.cap_headers, lower_port->cxl_data.memcache.cap_headers_cnt, lower_port->cxl_data.memcache.mapped_memcache_reg_block);
 }
 
+/**
+ * bytes order which is sent to device side is different from the order in root port.
+ * This function reorder the bytes order for root port.
+ */
+static void reordering_keys_in_rp(uint8_t *keys, int size)
+{
+  TEEIO_ASSERT(size % 4 == 0);
+  revert_bytes_in_dw((uint32_t *)keys, size/sizeof(uint32_t));
+}
+
 // setup cxl ide stream
 bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
                           uint32_t *session_id, uint8_t *kcbar_addr,
@@ -95,7 +105,6 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
   INTEL_KEYP_CXL_ROOT_COMPLEX_KCBAR *kcbar_ptr;
   cxl_ide_km_aes_256_gcm_key_buffer_t rx_key_buffer = {0};
   cxl_ide_km_aes_256_gcm_key_buffer_t tx_key_buffer = {0};
-  INTEL_KEYP_KEY_SLOT keys = {0};
 
   kcbar_ptr = (INTEL_KEYP_CXL_ROOT_COMPLEX_KCBAR *)kcbar_addr;
 
@@ -106,6 +115,7 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
     TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "libspdm_get_random_number for rx_key_buffer failed.\n"));
     return false;
   }
+  rx_key_buffer.iv[1] = 1;
 
   status = cxl_ide_km_key_prog(
       doe_context, spdm_context,
@@ -121,6 +131,8 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
     return false;
   }
   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "key_prog RX - %02x\n", kp_ack_status));
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Print key/iv send to device side:\n"));
+  cxl_dump_key_iv((uint8_t *)rx_key_buffer.key, sizeof(rx_key_buffer.key), (uint8_t *)rx_key_buffer.iv, sizeof(rx_key_buffer.iv));
 
   // ide_km_key_prog in TX
   result = libspdm_get_random_number(sizeof(tx_key_buffer.key), (void *)tx_key_buffer.key);
@@ -129,6 +141,7 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
     TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "libspdm_get_random_number for tx_key_buffer failed.\n"));
     return false;
   }
+  tx_key_buffer.iv[1] = 1;
 
   status = cxl_ide_km_key_prog(
       doe_context, spdm_context,
@@ -143,18 +156,25 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
     return false;
   }
   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "key_prog TX - %02x\n", kp_ack_status));
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Print key/iv send to device side:\n"));
+  cxl_dump_key_iv((uint8_t *)tx_key_buffer.key, sizeof(tx_key_buffer.key), (uint8_t *)tx_key_buffer.iv, sizeof(tx_key_buffer.iv));
 
   // Program TX/RX pending keys into Link_Enc_Key_Tx and Link_Enc_Key_Rx registers
   // Program TX/RX IV values
-  revert_copy_by_dw(tx_key_buffer.key, sizeof(tx_key_buffer.key), keys.bytes, sizeof(keys.bytes));
+  reordering_keys_in_rp((uint8_t *)tx_key_buffer.key, sizeof(tx_key_buffer.key));
   tx_key_buffer.iv[0] = 1;
-  cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_TX, 0, keys.bytes, sizeof(keys.bytes), (uint8_t *)tx_key_buffer.iv, sizeof(tx_key_buffer.iv));
-  cxl_dump_key_iv(&tx_key_buffer);
+  tx_key_buffer.iv[1] = 0;
+  cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_TX, 0, (uint8_t *)tx_key_buffer.key, sizeof(tx_key_buffer.key), (uint8_t *)tx_key_buffer.iv, sizeof(tx_key_buffer.iv));
 
-  revert_copy_by_dw(rx_key_buffer.key, sizeof(rx_key_buffer.key), keys.bytes, sizeof(keys.bytes));
+  reordering_keys_in_rp((uint8_t *)rx_key_buffer.key, sizeof(rx_key_buffer.key));
   rx_key_buffer.iv[0] = 1;
-  cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_RX, 0, keys.bytes, sizeof(keys.bytes), (uint8_t *)rx_key_buffer.iv, sizeof(rx_key_buffer.iv));
-  cxl_dump_key_iv(&rx_key_buffer);
+  rx_key_buffer.iv[1] = 0;
+  cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_RX, 0, (uint8_t *)rx_key_buffer.key, sizeof(rx_key_buffer.key), (uint8_t *)rx_key_buffer.iv, sizeof(rx_key_buffer.iv));
+
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Print key/iv programmed in host side:\n"));
+  cxl_dump_key_iv((uint8_t *)rx_key_buffer.key, sizeof(rx_key_buffer.key), (uint8_t *)rx_key_buffer.iv, sizeof(rx_key_buffer.iv));
+  cxl_dump_key_iv((uint8_t *)tx_key_buffer.key, sizeof(tx_key_buffer.key), (uint8_t *)tx_key_buffer.iv, sizeof(tx_key_buffer.iv));
+
 
   // Set TxKeyValid and RxKeyValid bit
   cxl_cfg_rp_txrx_key_valid(kcbar_ptr, CXL_IDE_STREAM_DIRECTION_TX, true);
