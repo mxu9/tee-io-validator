@@ -90,6 +90,30 @@ bool revert_copy_by_dw(void* src, int src_size, void* dest, int dest_size)
     return true;
 }
 
+void revert_bytes_in_dw(uint32_t* src_dw, uint32_t* dest_dw)
+{
+  for(int i = 0; i < 4; i++) {
+    *((uint8_t *)dest_dw + i) = *((uint8_t *)src_dw + 3 - i);
+  }
+}
+
+bool revert_copy_by_dw2(void* src, int src_size, void* dest, int dest_size)
+{
+    if(src == NULL || dest == NULL ||
+      src_size == 0 || src_size != dest_size || src_size%4 != 0) {
+        TEEIO_ASSERT(false);
+        return false;
+    }
+
+    int size_in_dw = src_size/4;
+    for(int i = 0; i < size_in_dw; i++) {
+        // *((uint32_t *)dest + i) = *((uint32_t *)src + size_in_dw - i - 1);
+        revert_bytes_in_dw((uint32_t *)src + i, (uint32_t *)dest + i);
+    }
+
+    return true;
+}
+
 /**
   Return if the decimal string is valid.
 

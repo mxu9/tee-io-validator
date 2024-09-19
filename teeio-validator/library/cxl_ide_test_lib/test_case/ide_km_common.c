@@ -106,7 +106,7 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
     TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "libspdm_get_random_number for rx_key_buffer failed.\n"));
     return false;
   }
-  memset(rx_key_buffer.key, 0x11, sizeof(rx_key_buffer.key));
+  // memset(rx_key_buffer.key, 0x11, sizeof(rx_key_buffer.key));
   rx_key_buffer.iv[0] = 1;
 
   status = cxl_ide_km_key_prog(
@@ -131,7 +131,7 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
     TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "libspdm_get_random_number for tx_key_buffer failed.\n"));
     return false;
   }
-  memset(tx_key_buffer.key, 0x22, sizeof(tx_key_buffer.key));
+  // memset(tx_key_buffer.key, 0x22, sizeof(tx_key_buffer.key));
   tx_key_buffer.iv[0] = 1;
 
   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Print key/iv send to device side:\n"));
@@ -155,12 +155,12 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
   // Program TX/RX pending keys into Link_Enc_Key_Tx and Link_Enc_Key_Rx registers
   // Program TX/RX IV values
   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Print key/iv programmed in host side:\n"));
-  revert_copy_by_dw(tx_key_buffer.key, sizeof(tx_key_buffer.key), keys.bytes, sizeof(keys.bytes));
+  revert_copy_by_dw2(tx_key_buffer.key, sizeof(tx_key_buffer.key), keys.bytes, sizeof(keys.bytes));
   tx_key_buffer.iv[0] = 1;
   cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_TX, 0, keys.bytes, sizeof(keys.bytes), (uint8_t *)tx_key_buffer.iv, sizeof(tx_key_buffer.iv));
   cxl_dump_key_iv((uint8_t *)keys.bytes, sizeof(keys.bytes), (uint8_t *)tx_key_buffer.iv, sizeof(tx_key_buffer.iv));
 
-  revert_copy_by_dw(rx_key_buffer.key, sizeof(rx_key_buffer.key), keys.bytes, sizeof(keys.bytes));
+  revert_copy_by_dw2(rx_key_buffer.key, sizeof(rx_key_buffer.key), keys.bytes, sizeof(keys.bytes));
   rx_key_buffer.iv[0] = 1;
   cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_RX, 0, keys.bytes, sizeof(keys.bytes), (uint8_t *)rx_key_buffer.iv, sizeof(rx_key_buffer.iv));
   cxl_dump_key_iv((uint8_t *)keys.bytes, sizeof(keys.bytes), (uint8_t *)rx_key_buffer.iv, sizeof(rx_key_buffer.iv));
