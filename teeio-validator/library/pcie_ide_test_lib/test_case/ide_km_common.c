@@ -442,6 +442,11 @@ bool ide_key_switch_to(void* doe_context, void* spdm_context,
 
     // step 2: program keys in rp/dev in RX/TX direction
 
+  // Before programming keys, we shall find empty key/iv slot
+  if(!pcie_ide_alloc_slot_ids(upper_port, rp_stream_index, k_set)) {
+    return false;
+  }
+
   bool result = ide_km_key_prog(doe_context, spdm_context, session_id,
                                 ks, PCIE_IDE_STREAM_RX, PCIE_IDE_SUB_STREAM_PR,
                                 port_index, stream_id, kcbar_addr, k_set, rp_stream_index);
