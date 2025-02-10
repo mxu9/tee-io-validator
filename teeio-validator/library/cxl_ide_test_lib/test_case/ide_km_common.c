@@ -27,6 +27,11 @@
 
 extern bool g_teeio_fixed_key;
 
+// For test
+static int statick_key_loop = 0;
+#define STATIC_KEY_STEP     0x22
+#define STATIC_KEY_MAX_LOOP 4
+
 void cxl_dump_key_iv_in_rp(const char* direction, uint8_t *key, int key_size, uint8_t *iv, int iv_size)
 {
   int i = 0;
@@ -67,7 +72,8 @@ static bool cxl_ide_generate_key(const void *pci_doe_context,
 
   if(g_teeio_fixed_key) {
     TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Generate fixed key in rootport side.\n"));
-    memset(key_buffer->key, direction == CXL_IDE_KM_KEY_DIRECTION_RX ? TEEIO_TEST_FIXED_RX_KEY_BYTE_VALUE : TEEIO_TEST_FIXED_TX_KEY_BYTE_VALUE, sizeof(key_buffer->key));
+    uint8_t key_step = statick_key_loop * STATIC_KEY_STEP;
+    memset(key_buffer->key, direction == CXL_IDE_KM_KEY_DIRECTION_RX ? (TEEIO_TEST_FIXED_RX_KEY_BYTE_VALUE + key_step) : (TEEIO_TEST_FIXED_TX_KEY_BYTE_VALUE + key_step), sizeof(key_buffer->key));
     *cxl_ide_km_iv = CXL_IDE_KM_KEY_IV_DEFAULT;
   } else {
 
@@ -226,10 +232,20 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
     return false;
   }
 
+  statick_key_loop++;
+  if(statick_key_loop > STATIC_KEY_MAX_LOOP) {
+    statick_key_loop = 0;
+  }
+
   if(!program_iv) {
     cxl_ide_km_iv_tx = CXL_IDE_KM_KEY_IV_DEFAULT;
     TEEIO_DEBUG((TEEIO_DEBUG_INFO, "CXL IV (TX) is not to be programmed.\n"));
   }
+
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO,
+              "RX %s, TX %s\n",
+              cxl_ide_km_iv_rx == CXL_IDE_KM_KEY_IV_DEFAULT ? "Default_IV" : "Initial_IV",
+              cxl_ide_km_iv_tx == CXL_IDE_KM_KEY_IV_DEFAULT ? "Default_IV" : "Initial_IV"));
 
   // ide_km_key_prog in RX
   status = cxl_ide_km_key_prog(

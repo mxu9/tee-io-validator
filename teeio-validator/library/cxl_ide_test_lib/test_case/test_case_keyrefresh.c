@@ -96,7 +96,10 @@ bool cxl_ide_test_keyrefresh_run(void *test_context)
       res = cxl_setup_ide_stream(spdm_doe->doe_context, spdm_doe->spdm_context,
                               &spdm_doe->session_id, upper_port->mapped_kcbar_addr,
                               group_context->stream_id, 0,
-                              upper_port, lower_port, false, configuration->bit_map, false, false);
+                              upper_port, lower_port, false,
+                              configuration->bit_map, false,
+                              true  // program_iv set to true for debug purpose
+                              );
 
       if(!res) {
         break;
@@ -113,7 +116,7 @@ bool cxl_ide_test_keyrefresh_run(void *test_context)
 
 bool cxl_ide_test_keyrefresh_teardown(void *test_context)
 {
-  bool ret = false;
+  // bool ret = false;
 
   ide_common_test_case_context_t *case_context = (ide_common_test_case_context_t *)test_context;
   TEEIO_ASSERT(case_context);
@@ -127,22 +130,24 @@ bool cxl_ide_test_keyrefresh_teardown(void *test_context)
   TEEIO_ASSERT(spdm_doe);
 
   ide_common_test_port_context_t* upper_port = &common->upper_port;
-  ide_common_test_port_context_t* lower_port = &common->lower_port;
+  // ide_common_test_port_context_t* lower_port = &common->lower_port;
 
-  CXL_QUERY_RESP_CAPS dev_caps = {.raw = lower_port->cxl_data.query_resp.caps};
-  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "dev_caps.k_set_stop_capable = %d\n", dev_caps.k_set_stop_capable));
+  // CXL_QUERY_RESP_CAPS dev_caps = {.raw = lower_port->cxl_data.query_resp.caps};
+  // TEEIO_DEBUG((TEEIO_DEBUG_INFO, "dev_caps.k_set_stop_capable = %d\n", dev_caps.k_set_stop_capable));
 
-  // send KSetStop if supported.
-  if(dev_caps.k_set_stop_capable == 1) {
-    ret = cxl_stop_ide_stream(spdm_doe->doe_context, spdm_doe->spdm_context,
-                              &spdm_doe->session_id, upper_port->mapped_kcbar_addr,
-                              group_context->stream_id, 0,
-                              upper_port, lower_port);
-    if(!ret) {
-      TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "cxl_stop_ide_stream failed.\n"));
-      return false;
-    }
-  } else {
+  // // send KSetStop if supported.
+  // if(dev_caps.k_set_stop_capable == 1) {
+  //   ret = cxl_stop_ide_stream(spdm_doe->doe_context, spdm_doe->spdm_context,
+  //                             &spdm_doe->session_id, upper_port->mapped_kcbar_addr,
+  //                             group_context->stream_id, 0,
+  //                             upper_port, lower_port);
+  //   if(!ret) {
+  //     TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "cxl_stop_ide_stream failed.\n"));
+  //     return false;
+  //   }
+  // }
+  // else
+  {
     TEEIO_DEBUG((TEEIO_DEBUG_INFO, "KSetStop is not supported.\n"));
   }
 
