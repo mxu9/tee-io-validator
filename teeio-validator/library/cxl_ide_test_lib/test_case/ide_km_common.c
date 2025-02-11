@@ -285,12 +285,12 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
   // Program TX/RX IV values
   cxl_construct_rp_keys(tx_key_buffer.key, sizeof(tx_key_buffer.key), keys.bytes, sizeof(keys.bytes));
   cxl_construct_rp_iv(tx_key_buffer.iv, sizeof(tx_key_buffer.iv), tx_iv, sizeof(tx_iv));
-  cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_TX, !key_refresh, 0, keys.bytes, sizeof(keys.bytes), (uint8_t *)tx_iv, sizeof(tx_iv));
+  cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_TX, true, 0, keys.bytes, sizeof(keys.bytes), (uint8_t *)tx_iv, sizeof(tx_iv));
   cxl_dump_key_iv_in_rp("Rx", keys.bytes, 32, (uint8_t *)tx_iv, 8);
 
   cxl_construct_rp_keys(rx_key_buffer.key, sizeof(rx_key_buffer.key), keys.bytes, sizeof(keys.bytes));
   cxl_construct_rp_iv(rx_key_buffer.iv, sizeof(rx_key_buffer.iv), rx_iv, sizeof(rx_iv));
-  cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_RX, !key_refresh, 0, keys.bytes, sizeof(keys.bytes), (uint8_t *)rx_iv, sizeof(rx_iv));
+  cxl_cfg_rp_link_enc_key_iv(kcbar_ptr, CXL_IDE_KM_KEY_DIRECTION_RX, true, 0, keys.bytes, sizeof(keys.bytes), (uint8_t *)rx_iv, sizeof(rx_iv));
   cxl_dump_key_iv_in_rp("Tx", keys.bytes, 32, (uint8_t *)rx_iv, 8);
 
   // Set TxKeyValid and RxKeyValid bit
@@ -315,10 +315,10 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
   }
   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "key_set_go RX\n"));
 
-  if(key_refresh) {
-    TEEIO_DEBUG((TEEIO_DEBUG_INFO, "KeyRefresh: Program IV in rootport side.\n"));
-    cxl_cfg_rp_link_enc_iv(kcbar_ptr, CXL_IDE_STREAM_DIRECTION_RX, (uint8_t *)rx_iv, sizeof(rx_iv));
-  }
+  // if(key_refresh) {
+  //   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "KeyRefresh: Program IV in rootport side.\n"));
+  //   cxl_cfg_rp_link_enc_iv(kcbar_ptr, CXL_IDE_STREAM_DIRECTION_RX, (uint8_t *)rx_iv, sizeof(rx_iv));
+  // }
 
   // Set LinkEncEnable bit
   if(!key_refresh) {
@@ -342,10 +342,10 @@ bool cxl_setup_ide_stream(void *doe_context, void *spdm_context,
   }
   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "key_set_go TX\n"));
 
-  if(key_refresh) {
-    TEEIO_DEBUG((TEEIO_DEBUG_INFO, "KeyRefresh: Program IV in rootport side.\n"));
-    cxl_cfg_rp_link_enc_iv(kcbar_ptr, CXL_IDE_STREAM_DIRECTION_TX, (uint8_t *)rx_iv, sizeof(rx_iv));
-  }
+  // if(key_refresh) {
+  //   TEEIO_DEBUG((TEEIO_DEBUG_INFO, "KeyRefresh: Program IV in rootport side.\n"));
+  //   cxl_cfg_rp_link_enc_iv(kcbar_ptr, CXL_IDE_STREAM_DIRECTION_TX, (uint8_t *)rx_iv, sizeof(rx_iv));
+  // }
 
   // wait for 10 ms for device to get ide ready
   libspdm_sleep(10 * 1000);
