@@ -64,6 +64,12 @@ void cxl_cfg_rp_link_enc_key_iv(
     uint8_t* iv, uint32_t iv_size       // iv vals
     );
 
+void cxl_cfg_rp_link_enc_iv(
+    INTEL_KEYP_CXL_ROOT_COMPLEX_KCBAR *kcbar_ptr,
+    CXL_IDE_STREAM_DIRECTION direction, // RX TX
+    uint8_t* iv, uint32_t iv_size       // iv vals
+    );
+
 void cxl_cfg_rp_txrx_key_valid(
     INTEL_KEYP_CXL_ROOT_COMPLEX_KCBAR *kcbar_ptr,
     CXL_IDE_STREAM_DIRECTION direction,

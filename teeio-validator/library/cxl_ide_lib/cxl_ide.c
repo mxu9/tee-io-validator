@@ -730,6 +730,30 @@ bool cxl_close_dev_port(ide_common_test_port_context_t *port_context, IDE_TEST_T
   return true;
 }
 
+void cxl_cfg_rp_link_enc_iv(
+    INTEL_KEYP_CXL_ROOT_COMPLEX_KCBAR *kcbar_ptr,
+    CXL_IDE_STREAM_DIRECTION direction, // RX TX
+    uint8_t* iv, uint32_t iv_size       // iv vals
+    )
+{
+  INTEL_KEYP_CXL_TXRX_IV* txrx_iv = NULL;
+
+  if(direction == CXL_IDE_STREAM_DIRECTION_RX) {
+    txrx_iv = &kcbar_ptr->tx_iv;
+  } else {
+    txrx_iv = &kcbar_ptr->rx_iv;
+  }
+
+  if(iv_size > sizeof(txrx_iv->iv)) {
+    iv_size = sizeof(txrx_iv->iv);
+  }
+
+  TEEIO_ASSERT(iv_size == 8);
+
+  reg_memcpy_dw(txrx_iv, iv_size, iv, iv_size);
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Encryption IV is programmed into rootport's %s_IV registers.\n", direction == CXL_IDE_STREAM_DIRECTION_RX ? "TX" : "RX"));
+}
+
 void cxl_cfg_rp_link_enc_key_iv(
     INTEL_KEYP_CXL_ROOT_COMPLEX_KCBAR *kcbar_ptr,
     CXL_IDE_STREAM_DIRECTION direction, // RX TX

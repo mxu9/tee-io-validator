@@ -45,7 +45,7 @@ bool cxl_ide_test_keyrefresh_setup(void *test_context)
   return cxl_setup_ide_stream(spdm_doe->doe_context, spdm_doe->spdm_context,
                               &spdm_doe->session_id, upper_port->mapped_kcbar_addr,
                               group_context->stream_id, 0,
-                              upper_port, lower_port, false, configuration->bit_map, true, true);
+                              upper_port, lower_port, configuration->bit_map, false);
 }
 
 bool cxl_ide_test_keyrefresh_run(void *test_context)
@@ -96,9 +96,8 @@ bool cxl_ide_test_keyrefresh_run(void *test_context)
       res = cxl_setup_ide_stream(spdm_doe->doe_context, spdm_doe->spdm_context,
                               &spdm_doe->session_id, upper_port->mapped_kcbar_addr,
                               group_context->stream_id, 0,
-                              upper_port, lower_port, false,
-                              configuration->bit_map, false,
-                              true  // program_iv set to true for debug purpose
+                              upper_port, lower_port,
+                              configuration->bit_map, true
                               );
 
       if(!res) {
