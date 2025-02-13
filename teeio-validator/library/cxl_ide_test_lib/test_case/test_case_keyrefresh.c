@@ -48,6 +48,38 @@ bool cxl_ide_test_keyrefresh_setup(void *test_context)
                               upper_port, lower_port, configuration->bit_map, false);
 }
 
+static bool cxl_dump_truncationtransmit_keyrefresh_cap_control_reg(ide_common_test_port_context_t* port_context)
+{
+  uint8_t* ctrl_ptr;
+  uint8_t* cap_ptr;
+
+  uint8_t *cxl_ide_capability_struct_ptr = port_context->cxl_data.memcache.cxl_ide_capability_struct_ptr;
+
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Print %s TruncationTransmitDelay and KeyRefresh Capability/Control Registers.\n", port_context->port->port_type == IDE_PORT_TYPE_ROOTPORT ? "Host" : "Device"));
+
+  if(cxl_ide_capability_struct_ptr == NULL) {
+    TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "pointer to cxl_ide_capability_struct_ptr is NULL!\n"));
+    return false;
+  }
+
+  cap_ptr = cxl_ide_capability_struct_ptr + OFFSET_OF(CXL_IDE_CAPABILITY_STRUCT, truncation_transmit_delay_capability);
+  ctrl_ptr = cxl_ide_capability_struct_ptr + OFFSET_OF(CXL_IDE_CAPABILITY_STRUCT, truncation_transmit_delay_control);
+  CXL_TRUNCATION_TRANSMIT_DELAY_CAPABILITY delay_cap = {.raw = mmio_read_reg32(cap_ptr)};
+  CXL_TRUNCATION_TRANSMIT_DELAY_CONTROL delay_ctrl = {.raw = mmio_read_reg32(ctrl_ptr)};
+
+  cap_ptr = cxl_ide_capability_struct_ptr + OFFSET_OF(CXL_IDE_CAPABILITY_STRUCT, key_refresh_time_capability);
+  ctrl_ptr = cxl_ide_capability_struct_ptr + OFFSET_OF(CXL_IDE_CAPABILITY_STRUCT, key_refresh_time_control);
+  CXL_KEY_REFRESH_TIME_CAPABILITY key_refresh_cap = {.raw = mmio_read_reg32(cap_ptr)};
+  CXL_KEY_REFRESH_TIME_CONTROL key_refresh_ctrl = {.raw = mmio_read_reg32(ctrl_ptr)};
+
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "  Delay Capability .rx_min_truncation_transmit_delay = 0x%x\n", delay_cap.rx_min_truncation_transmit_delay));
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "  Delay Control    .tx_truncation_transmit_delay     = 0x%x\n", delay_ctrl.tx_truncation_transmit_delay));
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "  Key Refresh Cap  .rx_min_key_refresh_time          = 0x%x\n", key_refresh_cap.rx_min_key_refresh_time));
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "  Key Refresh Ctrl .tx_key_refresh_time              = 0x%x\n", key_refresh_ctrl.tx_key_refresh_time));
+
+  return true;
+}
+
 bool cxl_ide_test_keyrefresh_run(void *test_context)
 {
   ide_common_test_case_context_t *case_context = (ide_common_test_case_context_t *)test_context;
@@ -87,6 +119,10 @@ bool cxl_ide_test_keyrefresh_run(void *test_context)
     TEEIO_PRINT(("Print device registers.\n"));
     // dump CXL IDE Capability in memcache reg block
     cxl_dump_ide_status(lower_port->cxl_data.memcache.cap_headers, lower_port->cxl_data.memcache.cap_headers_cnt, lower_port->cxl_data.memcache.mapped_memcache_reg_block);
+
+    TEEIO_PRINT(("\n"));
+    cxl_dump_truncationtransmit_keyrefresh_cap_control_reg(upper_port);
+    cxl_dump_truncationtransmit_keyrefresh_cap_control_reg(lower_port);
 
     TEEIO_PRINT(("Press 'q' to quit test or any other keys to key_refresh.\n"));
     cmd = getchar();
