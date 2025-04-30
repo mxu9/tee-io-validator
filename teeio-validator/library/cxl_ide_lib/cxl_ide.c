@@ -420,6 +420,8 @@ bool cxl_populate_memcache_reg_block(CXL_PRIV_DATA_MEMCACHE_REG_DATA* memcache_r
 
 bool cxl_init_memcache_reg_block(int cfg_space_fd, CXL_PRIV_DATA_MEMCACHE_REG_DATA* memcache_regs, IDE_TEST_CXL_PCIE_DVSEC* dvsec, int count)
 {
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Initialize cxl.memcache reg blocks.\n"));
+
   int i;
   for(i = 0; i < count; i++) {
     if(dvsec[i].dvsec_id == CXL_DVSEC_ID_REGISTER_LOCATOR_DVSEC) {
@@ -431,6 +433,8 @@ bool cxl_init_memcache_reg_block(int cfg_space_fd, CXL_PRIV_DATA_MEMCACHE_REG_DA
     TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "Cannot find REGISTER LOCATOR DVSEC!\n"));
     return NULL;
   }
+
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Register Locator DVSEC is found.\n"));
 
   dvsec += i;
   TEEIO_ASSERT(dvsec->offset != 0);
@@ -454,15 +458,22 @@ bool cxl_init_memcache_reg_block(int cfg_space_fd, CXL_PRIV_DATA_MEMCACHE_REG_DA
   uint64_t offset_in_bar = 0;
   int mapped_fd = 0;
 
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Walk thru Register blocks in Register Locator DVSEC. reg_block_count=%d\n", reg_block_cnt));
+
   for(i = 0; i < reg_block_cnt; i++) {
     offset += i*8;
     reg_block.low.raw = device_pci_read_32(offset, cfg_space_fd);
     reg_block.high.register_block_offset_high = device_pci_read_32(offset + 4, cfg_space_fd);
 
+    TEEIO_DEBUG((TEEIO_DEBUG_INFO, "  %d: reg_block.high  : register_block_offset_high = 0x%08x\n", i, reg_block.high.register_block_offset_high));
+    TEEIO_DEBUG((TEEIO_DEBUG_INFO, "     reg_block.low   : register_bir=0x%02x, register_block_id=0x%02x, register_block_offset_low=0x%04x\n",
+                reg_block.low.register_bir, reg_block.low.register_block_id, reg_block.low.register_block_offset_low));
+
     if(reg_block.low.register_block_id != CXL_DVSEC_REG_BLOCK_ID_COMPONENT_REG) {
       continue;
     }
     TEEIO_ASSERT(reg_block.low.register_bir < sizeof(m_pcie_bar_offset)/sizeof(uint32_t));
+    TEEIO_DEBUG((TEEIO_DEBUG_INFO, "The register block with block_id=0x1 is found.\n"));
 
     offset_in_bar = ((uint64_t)reg_block.high.register_block_offset_high << 32) | ((uint32_t)reg_block.low.register_block_offset_low<<16);
     mapped_memcache_reg_block = cxl_map_bar_addr(cfg_space_fd, m_pcie_bar_offset[reg_block.low.register_bir], offset_in_bar, &mapped_fd);
@@ -473,6 +484,8 @@ bool cxl_init_memcache_reg_block(int cfg_space_fd, CXL_PRIV_DATA_MEMCACHE_REG_DA
     TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "Failed to map cxl.memcache reg block.\n"));
     return false;
   }
+
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "cxl.memcache reg block is successfully mapped.\n"));
 
   memcache_regs->mapped_fd = mapped_fd;
   memcache_regs->mapped_memcache_reg_block = mapped_memcache_reg_block;
@@ -681,6 +694,7 @@ bool cxl_open_dev_port(ide_common_test_port_context_t *port_context)
   cxl_populate_dev_caps_in_ecap(fd, &cxl_data->ecap);
 
   // check CXL DVSECs
+  TEEIO_DEBUG((TEEIO_DEBUG_INFO, "Check if CXL DVSECs is valid.\n"));
   if(!cxl_check_ep_dvsec(cxl_data->ecap.dvsecs, dvsec_cnt)) {
     TEEIO_DEBUG((TEEIO_DEBUG_ERROR, "Check CXL DVSECs failed.\n"));
     goto OpenDevFail;
