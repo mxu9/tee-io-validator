@@ -14,6 +14,7 @@
 #include "cxl_ide.h"
 #include "cxl_tsp.h"
 #include "spdm_test.h"
+#include "soc_cxl_test.h"
 #include "intel_keyp.h"
 #include "teeio_debug.h"
 
@@ -77,6 +78,7 @@ typedef enum {
   TEEIO_TEST_CATEGORY_CXL_TSP,
   TEEIO_TEST_CATEGORY_TDISP,
   TEEIO_TEST_CATEGORY_SPDM,
+  TEEIO_TEST_CATEGORY_SOC_CXL,
   TEEIO_TEST_CATEGORY_MAX
 } TEEIO_TEST_CATEGORY;
 
@@ -481,6 +483,8 @@ typedef struct {
 
   uint8_t stream_id;
 } cxl_ide_test_group_context_t;
+
+#define soc_cxl_test_group_context_t cxl_ide_test_group_context_t
 
 typedef struct {
   teeio_common_test_group_context_t common;

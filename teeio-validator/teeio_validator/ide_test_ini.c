@@ -72,7 +72,8 @@ const char *TEEIO_TEST_CATEGORY_NAMES[] = {
     "cxl-ide",
     "cxl-tsp",
     "tdisp",
-    "spdm"
+    "spdm",
+    "soc-cxl"
 };
 
 #define IS_HYPHEN(a) ((a) == '-')
