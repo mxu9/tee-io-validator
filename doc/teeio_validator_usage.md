@@ -102,3 +102,21 @@ Refer to [ide_test_ini.md](../doc/ide_test_ini.md) for detailed description of .
 # Run cases in [TestSuite_1] in tdisp_test.ini.
 ./teeio_validator -f tdisp_test.ini
 ```
+
+## Run SOC-CXL Stream cases
+**Step1** Prepare the soc_cxl.ini.
+
+Refer to [ide_test_ini.md](../doc/ide_test_ini.md) for detailed description of .ini file. Here is a sample [soc_cxl.ini](./sample_ini/soc_cxl.ini).
+
+**Note**: The ```bus``` in ```[Topology_1]``` shall be replaced by the bus of **host BDF**(```0xd9```). The ```rootport_1``` and ```endpoint_1``` in ```[Ports]``` shall be replaced by the dev/func of **host BDF** and **device  BDF** respectively. Refer to [Check how TEEIO Device is connected](#check-how-teeio-device-is-connected)
+
+**Step2** Run test case
+
+```
+# Run cases in [TestSuite_1] in soc_cxl.ini.
+./teeio_validator -f soc_cxl.ini
+
+# Run specific case in [TestSuite_1] in soc_cxl.ini.
+./teeio_validator -f soc_cxl.ini -t 1 -c 1 -s IdeCapabilityStructure.1
+
+```

@@ -63,6 +63,7 @@ Settings of **Topology** / **Configuration** / **TestSuite** are different.
 - [CXL-IDE Section settings](#cxl-ide-section-settings)
 - [CXL-TSP Section settings](#cxl-tsp-section-settings)
 - [SPDM Section settings](#spdm-section-settings)
+- [SOC-CXL Section settings](#soc-cxl-section-settings)
 
 ### PCIE-IDE Section settings
 [Topology_x]
@@ -230,3 +231,30 @@ Settings of **Topology** / **Configuration** / **TestSuite** are different.
 |DeviceState|string||O|numbers separated by comma.<br> For example **1,2** means Cases1 and Cases2 in [DeviceInterfaceState.md](../doc/tdisp_test/TdispTestCase/5.DeviceInterfaceState.md)|
 |StartInterface|string||O|numbers separated by comma.<br> For example **1,2** means Cases1 and Cases2 in [StartInterfaceResponse.md](../doc/tdisp_test/TdispTestCase/6.StartInterfaceResponse.md)|
 |StopInterface|string||O|numbers separated by comma.<br> For example **1,2** means Cases1 and Cases2 in [StopInterfaceResponse.md](../doc/tdisp_test/TdispTestCase/7.StopInterfaceResponse.md)|
+
+### SOC-CXL Section settings
+[Topology_x]
+|Entry|Value|Default|Mandatory|Comment|
+|------|------|------|------|------|
+|type|string||M|must be **link_ide**|
+|connection|string||M|available values are: **direct, switch**|
+|bus|hex||M|The bus which rootport is connected to. For example 0x1a|
+|path1|string||M|rootport_x to endpoint_y. Each ports are separated by ‘,’. For example: rootport_1,switch_1:port_1-port_2,endpoint_2|
+|path2|string||O|rootport_x to endpoint_y. Each ports are separated by ‘,’. For example: rootport_1,switch_1:port_1-port_3,endpoint_3. <br/>**Note: path2 is only available in the connection of peer2peer**|
+|stream_id|number|0|O|it shall always be **0**|
+
+[Configration_x]
+|Entry|Value|Default|Mandatory|Comment|
+|------|------|------|------|------|
+|type|string||M|must be **link_ide**|
+|category|string||M|must be **soc-cxl**|
+|default|0/1|1|O||
+
+[TestSuite_x]
+|Entry|Value|Default|Mandatory|Comment|
+|------|------|------|------|------|
+|type|string||M|must be **link_ide**|
+|category|string||M|must be **cxl-ide**|
+|topology|number||M|Topology_x|
+|configuration|number||M|Configuration_x|
+|IdeCapabilityStructure|string||O|numbers separated by comma.|
